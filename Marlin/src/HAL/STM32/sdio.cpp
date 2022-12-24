@@ -131,37 +131,34 @@ void HAL_SD_MspInit(SD_HandleTypeDef *hsd) {
     hsd.Init.ClockDiv = clock_to_divider(SDIO_CLOCK);
     sd_state = HAL_SD_Init(&hsd);
 
-  SD_LowLevel_Init();
+    #if PINS_EXIST(SDIO_D1, SDIO_D2, SDIO_D3)
+      if (sd_state == HAL_OK)
+        sd_state = HAL_SD_ConfigWideBusOperation(&hsd, SDMMC_BUS_WIDE_4B);
+    #endif
 
-  uint8_t retry_Cnt = retryCnt;
-  for (;;) {
-    TERN_(USE_WATCHDOG, HAL_watchdog_refresh());
-    status = (bool) HAL_SD_Init(&hsd);
-    if (!status) break;
-    if (!--retry_Cnt) return false;   // return failing status if retries are exhausted
+    return (sd_state == HAL_OK);
   }
 
-  go_to_transfer_speed();
 
-  #if PINS_EXIST(SDIO_D1, SDIO_D2, SDIO_D3) // go to 4 bit wide mode if pins are defined
-    retry_Cnt = retryCnt;
-    for (;;) {
-      TERN_(USE_WATCHDOG, HAL_watchdog_refresh());
-      if (!HAL_SD_ConfigWideBusOperation(&hsd, SDIO_BUS_WIDE_4B)) break;  // some cards are only 1 bit wide so a pass here is not required
-      if (!--retry_Cnt) break;
-    }
-    if (!retry_Cnt) {  // wide bus failed, go back to one bit wide mode
-      hsd.State = (HAL_SD_StateTypeDef) 0;  // HAL_SD_STATE_RESET
-      SD_LowLevel_Init();
-      retry_Cnt = retryCnt;
-      for (;;) {
-        TERN_(USE_WATCHDOG, HAL_watchdog_refresh());
-        status = (bool) HAL_SD_Init(&hsd);
-        if (!status) break;
-        if (!--retry_Cnt) return false;   // return failing status if retries are exhausted
-      }
-      go_to_transfer_speed();
-    }
+#else // !SDIO_FOR_STM32H7
+
+  #define SD_TIMEOUT               500 // ms
+
+  // SDIO retries, configurable. Default is 3, from STM32F1
+  #ifndef SDIO_READ_RETRIES
+    #define SDIO_READ_RETRIES 3
+  #endif
+
+  // F4 supports one DMA for RX and another for TX, but Marlin will never
+  // do read and write at same time, so we use the same DMA for both.
+  DMA_HandleTypeDef hdma_sdio;
+
+  #ifdef STM32F1xx
+    #define DMA_IRQ_HANDLER DMA2_Channel4_5_IRQHandler
+  #elif defined(STM32F4xx)
+    #define DMA_IRQ_HANDLER DMA2_Stream3_IRQHandler
+  #else
+    #error "Unknown STM32 architecture."
   #endif
 
   extern "C" void SDIO_IRQHandler(void) { HAL_SD_IRQHandler(&hsd); }
@@ -370,7 +367,6 @@ void HAL_SD_MspInit(SD_HandleTypeDef *hsd) {
   }
 
 #endif // !SDIO_FOR_STM32H7
-
 /**
  * @brief Read a block
  * @details Read a block from media with SDIO
@@ -385,19 +381,8 @@ bool SDIO_ReadBlock(uint32_t block, uint8_t *dst) {
 
     uint32_t timeout = HAL_GetTick() + SD_TIMEOUT;
 
-  TERN_(USE_WATCHDOG, HAL_watchdog_refresh());
-
-  HAL_StatusTypeDef ret;
-  if (src) {
-    hdma_sdio.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    HAL_DMA_Init(&hdma_sdio);
-    ret = HAL_SD_WriteBlocks_DMA(&hsd, (uint8_t *)src, block, 1);
-  }
-  else {
-    hdma_sdio.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    HAL_DMA_Init(&hdma_sdio);
-    ret = HAL_SD_ReadBlocks_DMA(&hsd, (uint8_t *)dst, block, 1);
-  }
+    while (HAL_SD_GetCardState(&hsd) != HAL_SD_CARD_TRANSFER)
+      if (HAL_GetTick() >= timeout) return false;
 
     waitingRxCplt = 1;
     if (HAL_SD_ReadBlocks_DMA(&hsd, (uint8_t*)dst, block, 1) != HAL_OK)

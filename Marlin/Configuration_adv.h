@@ -4648,7 +4648,9 @@
   //
   // M43 - display pin status, toggle pins, watch pins, watch endstops & toggle LED, test servo probe
   //
-  #define PINS_DEBUGGING
+  #if DISABLED(SKR3) // Does not compile on SKR3
+    #define PINS_DEBUGGING
+  #endif
 //#endif
 
 // Enable Marlin dev mode which adds some special commands
