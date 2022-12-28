@@ -385,6 +385,8 @@
   #define SKR_UART
   #define DIAG_JUMPERS_REMOVED
   #define NO_AUTO_ASSIGN_WARNING
+  // This card has tons of memory, so...
+  #define SDCARD_SORT_ALPHA
 #endif
 
 #if ENABLED(CrealityTitan)
@@ -619,7 +621,7 @@
   #endif
 #endif
 
-#if ANY(MicroswissDirectDrive, DDXExtruderKit, CrealityTitan, E3DHemera, SpriteExtruder)
+#if ANY(MicroswissDirectDrive, MicroswissDirectDriveNG, DDXExtruderKit, CrealityTitan, E3DHemera, SpriteExtruder)
   #define DirectDrive
 #endif
 
@@ -645,7 +647,7 @@
   #define BedDC
 #endif
 
-#if ANY(SKR13, SKR14, SKR14Turbo, SKRPRO11, SKRE3Turbo, MachineEnder3V2, MachineEnder3S1, Creality422, Creality427, MachineEnder6, MachineSermoonD1, MachineCR30, MachineCR6, MachineCR6Max, MachineEnder7, MachineCR10Smart, MachineCR10SmartPro)
+#if ANY(SKR13, SKR14, SKR14Turbo, SKRPRO11, SKRE3Turbo, SKR3, MachineEnder3V2, MachineEnder3S1, Creality422, Creality427, MachineEnder6, MachineSermoonD1, MachineCR30, MachineCR6, MachineCR6Max, MachineEnder7, MachineCR10Smart, MachineCR10SmartPro)
   #define MachineLargeROM
 #endif
 
