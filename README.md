@@ -1,4 +1,14 @@
-﻿## Creality Touch/TFT Screen supported firmware
+﻿## Fork from Insanity Automation firmware, to support the BigTreeTech SKR 3
+ 
+ This branch has support for the BTT SKR 3 and Ender 5 Plus.
+ 
+ The configuration E5PUBLSKR3DZMS has:
+ - Dual Z axes.
+ - Creality touch screen support, using a custom cable wired to the SKR 3's LCD port (note: PA9 is the TX port, connect it to RX2 on the screen, and PA10 is the RX port, connect to TX2).
+ - MicroSwiss NG direct drive extruder and hot end support (because that's what is on my machine). This sets E steps to 400/mm, correct nozzle offsets, and a default retraction distance of 1.0 mm, as well as adding sufficent clearance for the BLTouch to work on the standard MicroSwiss printable bracket.
+ - Caution: check the BLTouch pinout versus the SKR 3 pinout for the servo and probe ports.
+ 
+ ## Creality Touch/TFT Screen supported firmware
 
 This branch adds support for the Creality touchscreen machines and was split off from the standard Creality branches due to specific custom changes not found upstream. This includes extensions to the EXTui framework among other smaller tweaks that we have been working towards getting submitted upstream. Machines supported here are :
 
